@@ -17,6 +17,15 @@ function commerce_civicrm_help($path = 'admin/help#commerce_civicrm') {
   }
 }
 
+/**
+ * Implements hook_views_api().
+ */
+function commerce_civicrm_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'commerce_civicrm'),
+  );
+}
 
 /**
  * Implements hook_civicrm_tabs().
@@ -32,8 +41,7 @@ function commerce_civicrm_civicrm_tabs(&$tabs, $cid) {
   }
 
   $customer = user_load($uid);
-  $history = commerce_civicrm_display_contact_transactions($customer, FALSE);
-  $count = count($history['orders']['#rows']);
+  $count = commerce_civicrm_display_contact_transactions($customer, TRUE);
 
   $tab = array(
     'id'     => 'purchases',
@@ -79,21 +87,21 @@ function commerce_civicrm_menu() {
  *
  * @param $customer
  *   Drupal user object for the customer
- * @param $render
- *   If true, render the output and print it to the screen.
+ * @param $count
+ *   If true, just return the number of purchases.
  */
-function commerce_civicrm_display_contact_transactions($customer, $render = TRUE) {
+function commerce_civicrm_display_contact_transactions($customer, $count = FALSE) {
   if (!civicrm_initialize()) {
     return;
   }
 
-  $output = _commerce_civicrm_display_customer_orders($customer);
-  if ($render) {
-    print render($output);
+  if ($count) {
+    return _commerce_civicrm_count_customer_orders($customer);
   }
-  else {
-    return $output;
-  }
+
+  $view = views_get_view('commerce_civicrm_orders_by_user');
+  $output =  $view->execute_display('default', array($customer->uid));
+  print render($output);
 
   return;
 }
@@ -614,98 +622,19 @@ function _commerce_civicrm_create_detail_string($order_wrapper) {
   return $str;
 }
 
-// TODO
 /**
- * Displays a list of orders made by a customer.
+ * Count number of orders made by a customer.
  *
  * @param $customer
  *   The user object for the customer.
  */
-function _commerce_civicrm_display_customer_orders($customer) {
-  $result = db_select('commerce_order')->extend('PagerDefault')
+function _commerce_civicrm_count_customer_orders($customer) {
+  $count = db_select('commerce_order')
     ->fields('commerce_order', array('order_id'))
     ->condition('uid', $customer->uid)
-    ->orderBy('created', 'DESC')
-    ->limit(50)
-    ->execute();
-  $order_ids = $result->fetchCol();
-  $orders = commerce_order_load_multiple($order_ids);
-
-  $header = array(t('Order ID'), t('Date'), t('Billing name'),
-                  t('Shipping name'), t('Items'), t('Total'), t('Operations'));
-  $rows = array();
-  $totals = array('orders' => 0, 'items' => 0, 'total' => 0);
-  foreach ($orders as $order) {
-    $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
-
-    // Get billing details.
-    $billing_profile = $order_wrapper->commerce_customer_billing->value();
-    $billing_profile_wrapper = entity_metadata_wrapper('commerce_customer_profile', $billing_profile);
-    $billing_address = $billing_profile_wrapper->commerce_customer_address->value();
-    $billing_name = (empty($billing_address['name_line']) ? $billing_address['first_name'] . ' ' . $billing_address['last_name'] : $billing_address['name_line']);
-
-    // Get shipping details.
-    $shipping_name = '';
-    if (!empty($order_wrapper->commerce_customer_shipping)) {
-      $shipping_profile = $order_wrapper->commerce_customer_shipping->value();
-      $shipping_profile_wrapper = entity_metadata_wrapper('commerce_customer_profile', $shipping_profile);
-      $shipping_address = $shipping_profile_wrapper->commerce_customer_address->value();
-      $shipping_name = (empty($shipping_address['name_line']) ? $shipping_address['first_name'] . ' ' . $shipping_address['last_name'] : $shipping_address['name_line']);
-    }
-
-    $operations = l('View', 'admin/commerce/orders/' . $order->order_id);
-    $operations .= ' ';
-    $operations .= l('Edit', 'admin/commerce/orders/' . $order->order_id . '/edit');
-
-    // Update summary stats.
-    $quantity = 0;
-    if (!empty($order_wrapper->commerce_line_items)) {
-      $quantity = commerce_line_items_quantity($order_wrapper->commerce_line_items, commerce_product_line_item_types());
-    }
-    $totals['items'] += $quantity;
-    $totals['orders'] += 1;
-
-    // Order total.
-    $currency = $order_wrapper->commerce_order_total->currency_code->value();
-    $total = $order_wrapper->commerce_order_total->amount->value();
-    $totals['total'] += $total;
-
-    $rows[] = array(
-      'data' => array(
-        array('data' => $order->order_id),
-        array('data' => format_date($order->created)),
-        array('data' => check_plain($billing_name)),
-        array('data' => check_plain($shipping_name)),
-        array('data' => $quantity),
-        array('data' => commerce_currency_format($total, $currency)),
-        array('data' => $operations),
-      ),
-      'id' => 'order-' . $order->order_id,
-    );
-  }
-
-  $build = array();
-
-  $build['description'] = array(
-    '#markup' => '<p>' . t('!totals_orders orders shown match that account with !totals_items items purchased and !totals_total spent:', array(
-      '!totals_orders' => $totals['orders'],
-      '!totals_items' => $totals['items'],
-      '!totals_total' => commerce_currency_format($totals['total'], $currency),
-    )) . '</p>',
-    '#weight' => -5,
-  );
-  $build['orders'] = array(
-    '#theme' => 'table',
-    '#header' => $header,
-    '#rows' => $rows,
-    '#attributes' => array('width' => '100%', 'class' => array('commerce-cust-orders-table')),
-    '#empty' => t('No orders found.'),
-  );
-  $build['pager'] = array(
-    '#theme' => 'pager',
-    '#weight' => 5,
-  );
-
-  return $build;
+    ->countQuery()
+    ->execute()
+    ->fetchField();
+  return $count;
 }
 
