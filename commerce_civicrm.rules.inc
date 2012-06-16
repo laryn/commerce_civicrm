@@ -19,6 +19,15 @@ function commerce_civicrm_rules_action_info() {
     ),
   );
 
+  $actions['commerce_civicrm_update_order_civicrm'] = array(
+    'label' => t('Update CiviCRM contact record'),
+    'base' => 'commerce_civicrm_action_order_civicrm',
+    'parameter' => array(
+      'commerce_order' => array('type' => 'commerce_order', 'label' => t('Order'), ),
+      'is_new' => array('type' => 'boolean', 'label' => t('Is new?'))
+    ),
+  );
+
   return $actions;
 }
 
