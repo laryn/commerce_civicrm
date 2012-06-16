@@ -346,6 +346,13 @@ function _commerce_civicrm_add_update_contact($cid, $order) {
   // Add / update the location.
   //$params = array('version' => '3.0', 'contact_id' => $cid, 'phone' => $phones, 'address' => $address);
   $params = array('version' => '3.0', 'contact_id' => $cid, 'address' => $address);
+
+  // Allow other modules to alter the data before being sent to CiviCRM
+  foreach(module_implements('commerce_civicrm_params') as $module) {
+    $function = $module .'_commerce_civicrm_params';
+    $function($params, $order, $cid);
+  }
+
   $new_location = civicrm_location_update($params);
   if ($new_location['is_error'] && strpos($new_location['error_message'], "Invalid Location Type(s)") !== FALSE) {
     $new_location = civicrm_location_add($params);
