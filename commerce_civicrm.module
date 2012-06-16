@@ -315,7 +315,7 @@ function _commerce_civicrm_add_update_contact($cid, $order) {
   // Create contact or update existing contact.
   $result = civicrm_contact_add($contact);
   if (!empty($result['is_error'])) {
-    watchdog('commerce_civicrm', 'civicrm_contact_add(): %error', array('%error' => $rc['error_message']), WATCHDOG_ERROR);
+    watchdog('commerce_civicrm', 'civicrm_contact_add(): %error', array('%error' => $result['error_message']), WATCHDOG_ERROR);
     return FALSE;
   }
 
