@@ -17,7 +17,7 @@
  */
 
 /**
- * Implementation of hook_commerce_civicrm_address
+ * Implementation of hook_commerce_civicrm_params
  * @param $civicrm_address
  * @param $order
  * @param $cid
