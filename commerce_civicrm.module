@@ -123,7 +123,7 @@ function commerce_civicrm_admin() {
   foreach ($groups as $group) {
     $options[$group['id']] = $group['title'];
   }
-  natsort(&$options);
+  natsort($options);
 
   // Get contribution types.
   // Note, no {} on table name because it's in civicrm db.
