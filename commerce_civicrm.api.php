@@ -38,5 +38,8 @@ function hook_commerce_civicrm_params(&$params, $order, $cid) {
       'location_type' => 'Home'
     )
   );
+  // Update the contact, need this for details like employer, job title etc
+  $params['id'] = $params['contact_id'];
+  $contact = civicrm_api('contact', 'update', $params);
   // It would be good to make these mappable through a GUI
 }
