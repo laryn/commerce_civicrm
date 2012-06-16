@@ -27,8 +27,14 @@ function hook_commerce_civicrm_params(&$params, $order, $cid) {
   $profile_id = $order->commerce_customer_billing['und'][0]['profile_id'];
   if (!$profile_id) return;
   $profile = commerce_customer_profile_load($profile_id);
-  // Then alter $params as required to add extra fields to send to CiviCRM.
-  $params['phone'] = $profile->someCustomCommerceField['und'][0]['value'];
-  $params['address'][1]['organisation'] = $profile->anotherCustomCommerceField['und'][0]['value'];
+  // Then alter $params as required to add any custom commerce fields to send to CiviCRM.
+  $params['job_title'] = $profile->field_job_title['und'][0]['value'];
+  $params['current_employer'] = $profile->field_organisation['und'][0]['value'];
+  $params['phone'] = array(
+    'is_primary' => TRUE,
+    'phone' => $profile->field_phone['und'][0]['value'],
+    'phone_type_id' => 1,
+    'location_type' => 'Home'
+  );
   // It would be good to make these mappable through a GUI
 }
