@@ -31,10 +31,12 @@ function hook_commerce_civicrm_params(&$params, $order, $cid) {
   $params['job_title'] = $profile->field_job_title['und'][0]['value'];
   $params['current_employer'] = $profile->field_organisation['und'][0]['value'];
   $params['phone'] = array(
-    'is_primary' => TRUE,
-    'phone' => $profile->field_phone['und'][0]['value'],
-    'phone_type_id' => 1,
-    'location_type' => 'Home'
+    array(
+      'is_primary' => TRUE,
+      'phone' => $profile->field_phone['und'][0]['value'],
+      'phone_type_id' => 1,
+      'location_type' => 'Home'
+    )
   );
   // It would be good to make these mappable through a GUI
 }
