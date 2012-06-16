@@ -22,7 +22,7 @@ function commerce_civicrm_help($path = 'admin/help#commerce_civicrm') {
  */
 function commerce_civicrm_views_api() {
   return array(
-    'api' => 2,
+    'api' => 3,
     'path' => drupal_get_path('module', 'commerce_civicrm'),
   );
 }
