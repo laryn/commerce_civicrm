@@ -19,6 +19,8 @@ function commerce_civicrm_rules_action_info() {
     ),
   );
 
+  // TODO: this won't work. There's no 'is_new' arg to
+  // commerce_civicrm_action_order_civicrm().
   $actions['commerce_civicrm_update_order_civicrm'] = array(
     'label' => t('Update CiviCRM contact record'),
     'base' => 'commerce_civicrm_action_order_civicrm',

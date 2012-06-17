@@ -16,6 +16,7 @@ function commerce_civicrm_default_rules_configuration() {
   $rule->action('commerce_civicrm_create_order_civicrm', array('commerce_order:select' => 'commerce-order'));
   $configs['commerce_civicrm_contact_on_order'] = $rule;
 
+  // TODO: don't think there's a "commerce_order_status_update" rules event defined.
   // Default configuration to update a purchase.
   $rule = rules_reaction_rule();
   $rule->label = t('Update CiviCRM on order/status update');
