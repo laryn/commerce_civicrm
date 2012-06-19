@@ -120,6 +120,53 @@ function commerce_civicrm_civicrm_links($op, $objectName, $objectId) {
 
 
 /**
+ * Implements of hook_form_FORMID_alter().
+ *
+ * @param $form
+ * @param $form_state
+ */
+function commerce_civicrm_form_commerce_order_ui_order_form_alter(&$form, &$form_state) {
+  if (!isset($form_state['commerce_order']->order_id) && $_GET['cid'] && is_numeric($_GET['cid'])) {
+    commerce_civicrm_prefill_order_form_with_civi_data($form, $form_state, $_GET['cid']);
+  }
+}
+
+
+/**
+ * Prefill a commerce order form with address data from a CiviCRM Contact.
+ *
+ * @param $form
+ * @param $form_state
+ * @param $cid
+ *   CiviCRM contact id
+ */
+function commerce_civicrm_prefill_order_form_with_civi_data(&$form, &$form_state, $cid) {
+  // Save the contact id onto the order
+  $form_state['commerce_order']->data['cid'] = $cid;
+
+  // Get the CiviCRM Contact object
+  $params = array('id' => $cid, 'version' => 3);
+  $result = civicrm_api('contact', 'get', $params);
+  $contact = $result['values'][$cid];
+
+  // Get the profile and address so we can work with them easier
+  $profile = $form['commerce_customer_billing']['und']['profiles'][0];
+  $address = $profile['commerce_customer_address']['und'][0];
+  $profile['field_email']['und'][0]['email']['#default_value'] = $contact['email'];
+  $address['street_block']['thoroughfare']['#value'] = $contact['street_address'];
+  $address['street_block']['premise']['#value'] = $contact['supplemental_address_1'];
+  $address['locality_block']['postal_code']['#value'] = $contact['postal_code'];
+  $address['locality_block']['administrative_area']['#value'] = $contact['state_province_name'];
+  $address['locality_block']['locality']['#value'] = $contact['city'];
+  $address['name_block']['name_line']['#value'] = $contact['display_name'];
+  // Add profile and address back into the form
+  $profile['commerce_customer_address']['und'][0] = $address;
+  $form['commerce_customer_billing']['und']['profiles'][0] = $profile;
+}
+
+
+
+/**
  * Display order information in a CiviCRM tab.
  *
  * @param $customer
