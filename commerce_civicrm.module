@@ -83,6 +83,43 @@ function commerce_civicrm_menu() {
 
 
 /**
+ * Implements hook_civicrm_links().
+ *
+ * Add a 'create order' link to the actions dropdown on a CiviCRM contact screen.
+ *
+ * @param $op
+ * @param $objectName
+ * @param $objectId
+ * @return array
+ */
+function commerce_civicrm_civicrm_links($op, $objectName, $objectId) {
+  civicrm_initialize();
+  global $base_url;
+  $links = array();
+  $uid = '';
+  $cid = $_GET['cid'];
+  if ($cid && is_numeric($cid)) {
+    // Get the Drupal uid for the CiviCRM contact if there is a match
+    $params = array('contact_id' => $cid, 'version' => 3);
+    $uf_match = civicrm_api('uf_match', 'get', $params);
+    if ($uf_match['id'] && count($uf_match['values'] == 1)) {
+      $uid = $uf_match['id'];
+    }
+    switch ($objectName) {
+      case 'Contact':
+        $links[] = array(
+          'title' => t('Add new Drupal Commerce order for this contact'),
+          'url' => $base_url.'/admin/commerce/orders/add/'.$uid .'?cid='. $cid,
+          'weight' => 10,
+        );
+        break;
+    }
+  }
+  return $links;
+}
+
+
+/**
  * Display order information in a CiviCRM tab.
  *
  * @param $customer
