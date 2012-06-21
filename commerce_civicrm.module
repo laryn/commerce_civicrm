@@ -343,7 +343,7 @@ function _commerce_civicrm_get_cid($order) {
   }
 
   // No matches found, so we will need to create a contact.
-  if (count($contact) == 0) {
+  if (count($contact) != 1) {
     return 0;
   }
   $cid = array_shift($contact);
