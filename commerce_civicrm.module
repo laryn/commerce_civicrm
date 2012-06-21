@@ -141,9 +141,11 @@ function commerce_civicrm_form_commerce_order_ui_order_form_alter(&$form, &$form
  * @see rules_invoke_all()
  */
 function commerce_civicrm_commerce_order_presave($order) {
-  commerce_civicrm_action_order_civicrm($order);
+  // Only update when a new order revision is being saved
+  if (isset($order->old_revision_id)) {
+    commerce_civicrm_action_order_civicrm($order);
+  }
 }
-
 
 /**
  * Prefill a commerce order form with address data from a CiviCRM Contact.
