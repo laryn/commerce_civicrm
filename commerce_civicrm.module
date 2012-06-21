@@ -323,6 +323,12 @@ function _commerce_civicrm_add_to_groups($cid) {
  *                 integer => CID if non-zero; must create if zero
  */
 function _commerce_civicrm_get_cid($order) {
+  // Order created from CiviCRM
+  if (isset($order->data['cid'])) {
+    return $order->data['cid'];
+  }
+
+
   // Logged in user.
   if ($order->uid) {
     global $user;
