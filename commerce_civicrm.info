@@ -4,7 +4,6 @@ core = 7.x
 
 dependencies[] = commerce_order
 dependencies[] = civicrm
-dependencies[] = entity
 
 files[] = commerce_civicrm.rules.inc
 files[] = commerce_civicrm.rules_defaults.inc
