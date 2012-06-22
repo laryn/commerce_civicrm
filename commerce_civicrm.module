@@ -615,8 +615,8 @@ function _commerce_civicrm_add_contribution($cid, &$order) {
 
   // TODO: figure out where to get the shipping total from.
 
-  if (!empty($order_wrapper->data)) {
-    $payment_instrument_id = _commerce_civicrm_map_payment_instrument($order_wrapper->data['payment_method']);
+  if (!empty($order->payment_method)) {
+    $payment_instrument_id = _commerce_civicrm_map_payment_instrument($order->payment_method);
   }
   else {
     $payment_instrument_id = _commerce_civicrm_map_payment_instrument('credit');
