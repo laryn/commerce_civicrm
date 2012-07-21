@@ -297,14 +297,13 @@ function commerce_civicrm_action_order_civicrm($order) {
 
   // Find or create a CiviCRM contact ID for the customer.
   $cid = _commerce_civicrm_get_cid($order);
-  if ($cid === FALSE) {
-    return;
+  if (!$cid) {
+    $params = array('version' => 3, 'contact_type' => 'Individual');
+    $result = civicrm_api('contact', 'create', $params);
+    $cid = $result['id'];
   }
 
-  $cid = _commerce_civicrm_add_update_contact($cid, $order);
-  if ($cid === FALSE) {
-    return;
-  }
+  _commerce_civicrm_add_update_contact($cid, $order);
 
   // Add the contribution record.
   _commerce_civicrm_add_contribution($cid, $order);
@@ -369,19 +368,19 @@ function _commerce_civicrm_get_cid($order) {
   // Anonymous user.
   // Look in the CiviCRM contacts table for a contact that matches the primary email.
   $params = array('email' => $order->mail, 'return.contact_id' => TRUE);
-  $contact = civicrm_contact_search($params);
-  if (!empty($contact['is_error'])) {
-    watchdog('commerce_civicrm', 'civicrm_contact_search(): %error', array('%error' => $contact['error_message']), WATCHDOG_ERROR);
+  $contact_search_results = civicrm_contact_search($params);
+  if (!empty($contact_search_results['is_error'])) {
+    watchdog('commerce_civicrm', 'civicrm_contact_search(): %error', array('%error' => $contact_search_results['error_message']), WATCHDOG_ERROR);
     return FALSE;
   }
 
   // No matches found, so we will need to create a contact.
-  if (count($contact) != 1) {
+  if (count($contact_search_results) != 1) {
     return 0;
   }
-  $cid = array_shift($contact);
+  $contact = array_shift($contact_search_results);
 
-  return $cid;
+  return $contact['contact_id'];
 }
 
 
