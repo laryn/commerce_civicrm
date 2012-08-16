@@ -50,3 +50,36 @@ function hook_commerce_civicrm_params(&$params, $order, $cid) {
   // It would be good to make these mappable through a GUI.
 }
 
+
+/**
+ * Implements hook_commerce_civicrm_contribution_params().
+ *
+ * @param $params
+ *   civicrm_location_update params array.
+ *   $params = array(
+ *     'contact_id' => $cid,
+ *     'receive_date' => date('Ymd'),
+ *     'total_amount' => $order_total,
+ *     'contribution_type_id' => variable_get('commerce_civicrm_contribution_type', ''),
+ *     'payment_instrument_id' => $payment_instrument_id,
+ *     'non_deductible_amount' => 00.00,
+ *     'fee_amount' => 00.00,
+ *     'net_amount' => $order_total,
+ *     'trxn_id' => $txn_id,
+ *     'invoice_id' => $order->order_id . '_dc',
+ *     'source' => $notes,
+ *     'contribution_status_id' => _commerce_civicrm_map_contribution_status($order->status),
+ *     'note' => $notes,
+ *   );
+ * 
+ * @param $order
+ *   Commerce order object.
+ * @param $cid
+ *   CiviCRM contact id.
+ */
+function hook_commerce_civicrm_contribution_params(&$params, $order, $cid) {
+  // You can grab the order wrapper like so. 
+  $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+  // And then adjust the params as required.
+}
+

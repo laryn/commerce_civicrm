@@ -127,6 +127,7 @@ function commerce_civicrm_civicrm_links($op, $objectName, $objectId) {
  */
 function commerce_civicrm_form_commerce_order_ui_order_form_alter(&$form, &$form_state) {
   if (!isset($form_state['commerce_order']->order_id) && $_GET['cid'] && is_numeric($_GET['cid'])) {
+     $_SESSION['tracking']['commerce_order'] =  $form_state['commerce_order'];
     commerce_civicrm_prefill_order_form_with_civi_data($form, $form_state, $_GET['cid']);
   }
 }
@@ -143,6 +144,7 @@ function commerce_civicrm_form_commerce_order_ui_order_form_alter(&$form, &$form
 function commerce_civicrm_commerce_order_presave($order) {
   // Only update when a new order revision is being saved
   if (isset($order->old_revision_id)) {
+      $_SESSION['tracking']['order'] = $order;
     commerce_civicrm_action_order_civicrm($order);
   }
 }
@@ -642,6 +644,12 @@ function _commerce_civicrm_add_contribution($cid, &$order) {
   }
   if (!empty($shipping_field_id)) {
     $params['custom_' . $shipping_field_id] = $shipping_total;
+  }
+
+  // Allow other modules to alter the contribution data before being sent to CiviCRM.
+  foreach (module_implements('commerce_civicrm_contribution_params') as $module) {
+    $function = $module . '_commerce_civicrm_contribution_params';
+    $function($params, $order, $cid);
   }
 
   require_once 'api/v2/Contribute.php';
