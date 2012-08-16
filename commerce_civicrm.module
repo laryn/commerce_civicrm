@@ -387,6 +387,21 @@ function _commerce_civicrm_get_cid($order) {
 
 
 /**
+ * Get a contact object given a contact id
+ */
+function _commerce_civicrm_get_contact($cid) {
+  $params = array('id' => $cid, 'version' => 3);
+  $result = civicrm_api('contact', 'get', $params);
+  $contact = $result['values'][$cid];
+  if (!empty($contact['is_error'])) {
+    watchdog('commerce_civicrm', 'civicrm_contact_search(): %error', array('%error' => $contact['error_message']), WATCHDOG_ERROR);
+    return FALSE;
+  }
+  return $contact;
+}
+
+
+/**
  *  Add or update contact information.
  */
 function _commerce_civicrm_add_update_contact($cid, $order) {
@@ -395,17 +410,7 @@ function _commerce_civicrm_add_update_contact($cid, $order) {
   $contact = array();
 
   if ($cid != 0) {
-    $params = array(
-      'contact_id' => $cid,
-      'return.contact_id'        => 1,
-      'return.contact_source'    => 1,
-    );
-    $contact = civicrm_contact_search($params);
-    if (!empty($contact['is_error'])) {
-      watchdog('commerce_civicrm', 'civicrm_contact_search(): %error', array('%error' => $contact['error_message']), WATCHDOG_ERROR);
-      return FALSE;
-    }
-    $contact = array_shift($contact);
+    $contact = _commerce_civicrm_get_contact($cid);
     $contact['contact_id'] = $cid;
     if (!empty($contact['contact_source'])) {
       $contact['source']     = $contact['contact_source'];
@@ -512,7 +517,7 @@ function _commerce_civicrm_add_update_contact($cid, $order) {
     // Add / update the location.
     $params = array('version' => '3.0', 'contact_id' => $cid, 'address' => $address);
     $new_location = civicrm_location_update($params);
-    if ($new_location['is_error'] && strpos($new_location['error_message'], "Invalid Location Type(s): Shipping") !== FALSE) {
+    if ($new_location['is_error'] && strpos($new_location['error_message'], "Invalid Location Type(s) : Home") !== FALSE) {
       $new_location = civicrm_location_add($params);
     }
   }
