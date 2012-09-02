@@ -127,7 +127,6 @@ function commerce_civicrm_civicrm_links($op, $objectName, $objectId) {
  */
 function commerce_civicrm_form_commerce_order_ui_order_form_alter(&$form, &$form_state) {
   if (!isset($form_state['commerce_order']->order_id) && $_GET['cid'] && is_numeric($_GET['cid'])) {
-     $_SESSION['tracking']['commerce_order'] =  $form_state['commerce_order'];
     commerce_civicrm_prefill_order_form_with_civi_data($form, $form_state, $_GET['cid']);
   }
 }
@@ -142,10 +141,13 @@ function commerce_civicrm_form_commerce_order_ui_order_form_alter(&$form, &$form
  * @see rules_invoke_all()
  */
 function commerce_civicrm_commerce_order_presave($order) {
-  // Only update when a new order revision is being saved
+  // Only update when a new order revision is being saved.
   if (isset($order->old_revision_id)) {
-      $_SESSION['tracking']['order'] = $order;
-    commerce_civicrm_action_order_civicrm($order);
+    // Update the contact if we have one.
+    $cid = _commerce_civicrm_get_cid($order);
+    if ($cid) {
+      _commerce_civicrm_update_contact($cid, $order);
+    }
   }
 }
 
@@ -288,24 +290,20 @@ function commerce_civicrm_admin() {
  *   the order
  */
 function commerce_civicrm_action_order_civicrm($order) {
-  global $user;
-
   if (!civicrm_initialize()) {
     return;
   }
 
-  require_once 'CRM/Core/BAO/UFMatch.php';
-  require_once 'api/v2/Contact.php';
-
   // Find or create a CiviCRM contact ID for the customer.
   $cid = _commerce_civicrm_get_cid($order);
   if (!$cid) {
-    $params = array('version' => 3, 'contact_type' => 'Individual');
+    $params = array('version' => 3, 'contact_type' => 'Individual', 'email' => $order->mail);
     $result = civicrm_api('contact', 'create', $params);
     $cid = $result['id'];
   }
 
-  _commerce_civicrm_add_update_contact($cid, $order);
+  // Update the contact.
+  _commerce_civicrm_update_contact($cid, $order);
 
   // Add the contribution record.
   _commerce_civicrm_add_contribution($cid, $order);
@@ -351,6 +349,13 @@ function _commerce_civicrm_add_to_groups($cid) {
  *                 integer => CID if non-zero; must create if zero
  */
 function _commerce_civicrm_get_cid($order) {
+  if (!civicrm_initialize()) {
+    return;
+  }
+
+  require_once 'CRM/Core/BAO/UFMatch.php';
+  require_once 'api/v2/Contact.php';
+
   // Order created from CiviCRM
   if (isset($order->data['cid'])) {
     return $order->data['cid'];
@@ -387,36 +392,26 @@ function _commerce_civicrm_get_cid($order) {
 
 
 /**
- * Get a contact object given a contact id
- */
-function _commerce_civicrm_get_contact($cid) {
-  $params = array('id' => $cid, 'version' => 3);
-  $result = civicrm_api('contact', 'get', $params);
-  $contact = $result['values'][$cid];
-  if (!empty($contact['is_error'])) {
-    watchdog('commerce_civicrm', 'civicrm_contact_search(): %error', array('%error' => $contact['error_message']), WATCHDOG_ERROR);
-    return FALSE;
-  }
-  return $contact;
-}
-
-
-/**
  *  Add or update contact information.
+ * @params $cid int CiviCRM contact id
+ * @params $order Drupal order object
  */
-function _commerce_civicrm_add_update_contact($cid, $order) {
+function _commerce_civicrm_update_contact($cid, $order) {
+  if (!civicrm_initialize()) {
+    return;
+  }
+
+  // Needed for civicrm_location_update
   require_once 'api/v2/Location.php';
 
-  $contact = array();
-
-  if ($cid != 0) {
-    $contact = _commerce_civicrm_get_contact($cid);
-    $contact['contact_id'] = $cid;
-    if (!empty($contact['contact_source'])) {
-      $contact['source']     = $contact['contact_source'];
-    }
-    unset($contact['contact_source']);
+  if (!$cid) {
+    throw(new ErrorException('Contact id required to update contact.'));
   }
+
+  // Get the contact object from the contact id
+  $params = array('id' => $cid, 'version' => 3);
+  $result = civicrm_api('contact', 'get', $params);
+  $contact = $result['values'][$result['id']];
 
   // Get customer profile information.
   $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
@@ -426,6 +421,7 @@ function _commerce_civicrm_add_update_contact($cid, $order) {
 
   // If we have a full name field, split it.
   if (!empty($billing_address['name_line'])) {
+    $contact['display_name'] = $billing_address['name_line'];
     // Assumes user only has one first name and one surname... not ideal.
     $names = preg_split('/\s+/', $billing_address['name_line'], 2);
     $first_name = $names[0];
@@ -435,6 +431,7 @@ function _commerce_civicrm_add_update_contact($cid, $order) {
   else {
     $first_name = $billing_address['first_name'];
     $last_name = $billing_address['last_name'];
+    $contact['display_name'] = $first_name .' '. $last_name;
   }
 
   // Prepare array to update contact via Civi API.
@@ -442,18 +439,14 @@ function _commerce_civicrm_add_update_contact($cid, $order) {
   $contact['first_name'] = $first_name;
   $contact['sort_name'] = "{$last_name}, {$first_name}";
   $contact['display_name'] = $billing_address['first_name'] . ' ' . $billing_address['last_name'];
-  $contact['contact_type'] = 'Individual';
   $contact['email'] = $order->mail;
   if (empty($contact['source'])) {
     $contact['source'] = 'Drupal Commerce purchase';
   }
 
-  // Create contact or update existing contact.
-  $result = civicrm_contact_add($contact);
-  if (!empty($result['is_error'])) {
-    watchdog('commerce_civicrm', 'civicrm_contact_add(): %error', array('%error' => $result['error_message']), WATCHDOG_ERROR);
-    return FALSE;
-  }
+  // Update the contact object
+  $contact['version'] = 3;
+  $result = civicrm_api('contact', 'update', $contact);
 
   // Billing location.
   $address = array(
@@ -469,18 +462,9 @@ function _commerce_civicrm_add_update_contact($cid, $order) {
     )
   );
 
-  // Phone - TODO: where to get this information?
-  //$phone = array();
-  //$phone = array(
-  //  'phone' => $phone_number,
-  //  'is_primary' => TRUE,
-  //  'phone_type_id' => 1,
-  //  'location_type' => 'Home',
-  //);
-  //$phones = array($phone);
+  // TODO Phone @see hook_commerce_civicrm_params() for example.
 
   // Add / update the location.
-  //$params = array('version' => '3.0', 'contact_id' => $cid, 'phone' => $phones, 'address' => $address);
   $params = array('version' => '3.0', 'contact_id' => $cid, 'address' => $address);
 
   // Allow other modules to alter the data before being sent to CiviCRM.
@@ -526,8 +510,6 @@ function _commerce_civicrm_add_update_contact($cid, $order) {
   if (civicrm_error($new_location)) {
     watchdog('commerce_civicrm', 'civicrm_location_update(): %error', array('%error' => $new_location['error_message']), WATCHDOG_ERROR);
   }
-
-  return $cid;
 }
 
 
