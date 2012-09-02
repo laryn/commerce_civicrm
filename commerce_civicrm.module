@@ -578,7 +578,7 @@ function _commerce_civicrm_add_contribution($cid, &$order) {
   $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
 
   // TODO: how to handle multiple transactions on one order?
-  $transactions = commerce_payment_transaction_load_multiple(array('order_id' => $order->order_id));
+  $transactions = commerce_payment_transaction_load_multiple(array(), array('order_id' => $order->order_id));
   $transaction = array_pop($transactions);
   if (empty($transaction)) {
     $txn_id = time() . '_' . rand(1000, 9999);
