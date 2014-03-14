@@ -126,7 +126,7 @@ function commerce_civicrm_civicrm_links($op, $objectName, $objectId) {
  * @param $form_state
  */
 function commerce_civicrm_form_commerce_order_ui_order_form_alter(&$form, &$form_state) {
-  if (!isset($form_state['commerce_order']->order_id) && $_GET['cid'] && is_numeric($_GET['cid'])) {
+  if (!isset($form_state['commerce_order']->order_id) && !empty($_GET['cid']) && is_numeric($_GET['cid'])) {
     commerce_civicrm_prefill_order_form_with_civi_data($form, $form_state, $_GET['cid']);
   }
 }
