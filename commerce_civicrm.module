@@ -407,21 +407,33 @@ function _commerce_civicrm_get_cid($order) {
   }
 
   // Anonymous user.
-  // Look in the CiviCRM contacts table for a contact that matches the primary email.
-  $params = array('email' => $mail, 'return.contact_id' => TRUE);
-  $contact_search_results = civicrm_contact_search($params);
+  // Try to find a match based on email.
+  $contact_search_results = civicrm_api('contact', 'get', array(
+    'email' => $mail,
+    'version' => 3,
+    'return' => array(
+      'contact_id',
+      'contact_source',
+    )
+  ));
   if (!empty($contact_search_results['is_error'])) {
     watchdog('commerce_civicrm', 'civicrm_contact_search(): %error', array('%error' => $contact_search_results['error_message']), WATCHDOG_ERROR);
     return FALSE;
   }
 
-  // No matches found, so we will need to create a contact.
-  if (count($contact_search_results) != 1) {
-    return 0;
+  switch (count($contact_search_results['values'])) {
+    case 0:
+      return 0;
+    case 1:
+      return $contact_search_results['id'];
+    default:
+      foreach ($contact_search_results['values'] as $contact) {
+        if ($contact['contact_source'] == t('Drupal Commerce purchase') ) {
+          return $contact['contact_id'];
+        }
+      }
+      return 0;
   }
-  $contact = array_shift($contact_search_results);
-
-  return $contact['contact_id'];
 }
 
 
@@ -475,7 +487,7 @@ function _commerce_civicrm_update_contact($cid, $order) {
   $contact['display_name'] = $billing_address['first_name'] . ' ' . $billing_address['last_name'];
   $contact['email'] = _commerce_civicrm_get_mail_from_order($order);
   if (empty($contact['source'])) {
-    $contact['source'] = 'Drupal Commerce purchase';
+    $contact['source'] = t('Drupal Commerce purchase');
   }
 
   // Update the contact object
