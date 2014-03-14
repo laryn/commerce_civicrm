@@ -102,7 +102,7 @@ function commerce_civicrm_civicrm_links($op, $objectName, $objectId) {
     // Get the Drupal uid for the CiviCRM contact if there is a match
     $params = array('contact_id' => $cid, 'version' => 3, 'sequential' => 0);
     $uf_match = civicrm_api('uf_match', 'get', $params);
-    if (!empty($uf_match['id']) && count($uf_match['values'] == 1)) {
+    if ($uf_match['id'] && count($uf_match['values'] == 1)) {
       $uid = $uf_match['id'];
     }
     switch ($objectName) {
