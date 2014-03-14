@@ -40,7 +40,8 @@ function hook_commerce_civicrm_params(&$params, $order, $cid) {
       'is_primary' => TRUE,
       'phone' => $profile_wrapper->field_phone->value(),
       'phone_type_id' => 1,
-      'location_type' => 'Home'
+      'location_type' => 'Home',
+    		'sequential' => 0
     )
   );
 
@@ -60,7 +61,7 @@ function hook_commerce_civicrm_params(&$params, $order, $cid) {
  *     'contact_id' => $cid,
  *     'receive_date' => date('Ymd'),
  *     'total_amount' => $order_total,
- *     'contribution_type_id' => variable_get('commerce_civicrm_contribution_type', ''),
+ *     'financial_type_id' => variable_get('commerce_civicrm_contribution_type', ''),
  *     'payment_instrument_id' => $payment_instrument_id,
  *     'non_deductible_amount' => 00.00,
  *     'fee_amount' => 00.00,
@@ -76,8 +77,10 @@ function hook_commerce_civicrm_params(&$params, $order, $cid) {
  *   Commerce order object.
  * @param $cid
  *   CiviCRM contact id.
+ * @param $transaction
+ *   Drupal commerce transaction object
  */
-function hook_commerce_civicrm_contribution_params(&$params, $order, $cid) {
+function hook_commerce_civicrm_contribution_params(&$params, $order, $cid, $transaction) {
   // You can grab the order wrapper like so. 
   $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
   // And then adjust the params as required.
